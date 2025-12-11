@@ -131,6 +131,20 @@ class BaseWaiter(OriginWaiter):
         """
         ...
 
+    def eles_loaded_ret(self,
+                    locators: Union[Tuple[str, str], str, list, tuple],
+                    timeout: float = None,
+                    any_one: bool = False,
+                    raise_err: bool = None) -> Union[bool, str]:
+        """等待元素加载到DOM，可等待全部或任意一个，并返回元素Xpath规则
+        :param locators: 要等待的元素，输入定位符，用list输入多个
+        :param timeout: 超时时间（秒），默认读取页面超时时间
+        :param any_one: 是否等待到一个就返回
+        :param raise_err: 等待失败时是否报错，为None时根据Settings设置
+        :return: 成功返回元素Xpath规则，失败返回False
+        """
+        ...
+
     def load_start(self, timeout: float = None, raise_err: bool = None) -> bool:
         """等待页面开始加载
         :param timeout: 超时时间（秒），为None时使用页面timeout属性

@@ -151,6 +151,54 @@ class BaseWaiter(OriginWaiter):
         else:
             return False
 
+    def eles_loaded_ret(self, locators, timeout=None, any_one=False, raise_err=None):
+
+        def _find(loc, driver):
+            r = driver.run('DOM.performSearch', query=loc, includeUserAgentShadowDOM=True)
+            if not r or 'error' in r:
+                return False
+            elif r['resultCount'] == 0:
+                driver.run('DOM.discardSearchResults', searchId=r['searchId'])
+                return False
+            searchId = r['searchId']
+            ids = driver.run('DOM.getSearchResults', searchId=searchId, fromIndex=0,
+                             toIndex=r['resultCount'])
+            if 'error' in ids:
+                return False
+
+            ids = ids['nodeIds']
+            res = False
+            for i in ids:
+                r = driver.run('DOM.describeNode', nodeId=i)
+                if 'error' in r or r['node']['nodeName'] in ('#text', '#comment'):
+                    continue
+                else:
+                    res = True
+                    break
+            driver.run('DOM.discardSearchResults', searchId=searchId)
+            return res
+
+        by = ('id', 'xpath', 'link text', 'partial link text', 'name', 'tag name', 'class name', 'css selector')
+        locators = ((get_loc(locators)[1],) if (isinstance(locators, str) or isinstance(locators, tuple)
+                                                and locators[0] in by and len(locators) == 2)
+                    else [get_loc(x)[1] for x in locators])
+
+        if timeout is None:
+            timeout = self._owner.timeout
+        end_time = perf_counter() + timeout
+        while perf_counter() < end_time:
+            if any_one:
+                for loc in locators:
+                    if _find(loc, self._owner.driver):
+                        return loc
+            elif all([_find(l, self._owner.driver) for l in locators]):
+                return True
+            sleep(.01)
+        if raise_err is True or (_S.raise_when_wait_failed is True and raise_err is None):
+            raise WaitTimeoutError(_S._lang.WAITING_FAILED_, _S._lang.ELE_LOADED, timeout, LOCATOR=locators)
+        else:
+            return False
+
     def load_start(self, timeout=None, raise_err=None):
         return self._loading(timeout=timeout, gap=.002, raise_err=raise_err)
 
